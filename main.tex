@@ -1,0 +1,51 @@
+\documentclass[12pt,oneside,a4paper]{extarticle} 
+\usepackage{geometry}
+ \geometry{
+%showframe,
+a4paper,
+marginparsep=-0.75em,
+%marginparwidth=1.0em,
+%paperwidth=21.0cm,
+%paperheight=29.7cm,
+left=1.5cm,
+right=1.5cm,
+top=1.0cm,
+bottom=1.0cm,
+includehead,
+includefoot,
+}
+
+\input{config}
+\providecommand{\DocTitle}{}
+\providecommand{\DocAuthor}{}
+\IfFileExists{docmeta.tex}{\input{docmeta}}{}
+\usepackage[font={small}]{caption}
+%<*SETUP>
+\DeclareMathOperator*{\sub}{sub}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\setcounter{tocdepth}{2}
+
+\pagestyle{fancy}% Change page style to plain
+\fancyhf{}% Clear header/footer
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+% \fancyhead[R]{R}
+% \fancyhead[L]{L}
+\fancyfoot[C]{\thepage}
+\title{\vspace{-2cm} \DocTitle}
+\author{\DocAuthor}
+\date{}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\renewcommand{\thesection}{\arabic{section}}
+% \newcommand{\sectionbreak}{\clearpage}
+\newcounter{sectioncount}
+\pretocmd{\section}{%
+  \stepcounter{sectioncount}%
+  \ifnum\value{sectioncount}>1
+    \clearpage
+  \fi
+}{}{}
+\begin{document}
+\maketitle
+\input{data}
+\end{document}
