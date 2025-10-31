@@ -1,0 +1,13 @@
+image: docker:24.0.5
+
+options:
+  docker: true
+
+pipelines:
+  default:
+    - step:
+        name: Build Docker image
+        services:
+          - docker
+        script:
+          - docker build -t tex-hebrew .

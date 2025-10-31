@@ -10,20 +10,17 @@ docker build -t tex-hebrew .
 
 ## Convert Markdown to PDF
 
-The entrypoint converts Markdown to LaTeX with `mdtex.sh`, compiles via `latexmk`, and cleans intermediate files. You can supply Markdown either by path (useful when mounting) or via standard input.
-
-### Using a mounted file
-
-```bash
-docker run --rm \
-  -v "$(pwd)":/data \
-  tex-hebrew --output /data/lecture.pdf /data/lecture.md
-```
+The entrypoint converts Markdown to LaTeX with `mdtex.sh`, compiles via `latexmk`, and cleans intermediate files. Provide Markdown on standard input and capture the resulting PDF from standard output (or use --output to write to a file).
 
 ### Streaming without mounts
 
 ```bash
-docker run --rm -i tex-hebrew --stdin --output - < lecture.md > lecture.pdf
+docker run --rm -i ghcr.io/golaniy/md2tex_hebrew:latest \
+  --output - < lecture.md > lecture.pdf
 ```
 
-The PDF title defaults to the Markdown name; override it with `--title` (or `DOC_TITLE`). Populate the author line with `--author` or `DOC_AUTHOR`. To use different templates, pass `--main` and `--config` with paths inside the container (defaults live at `/opt/tex-template/main.tex` and `/opt/tex-template/config.tex`).
+The PDF title defaults to the Markdown name; override it with `--title` (or `DOC_TITLE`). Populate the author line with `--author` or `DOC_AUTHOR`. For custom templates, provide full file contents via the `MAIN_TEX_CONTENT` and/or `CONFIG_TEX_CONTENT` environment variables before running the container. For example, `-e MAIN_TEX_CONTENT="$(cat main.tex)"` overrides the primary template.
+
+## CI build
+
+The Bitbucket pipeline builds the Docker image on every push, ensuring the published image at `ghcr.io/golaniy/md2tex_hebrew:latest` stays up to date.
