@@ -1,26 +1,50 @@
 # Hebrew LaTeX Build With Docker
 
-This repo includes a Docker setup that compiles the project with full TeX Live Hebrew support, avoiding the need to manage fonts and packages on the host machine.
-
-## Build the image
-
-```bash
-docker build -t tex-hebrew .
-```
+This repo includes a Docker setup that compiles a Hebrew Markdown file (with math) to a PDF using XeLaTeX and TeX Live's Hebrew support, without requiring local font/package management.
 
 ## Convert Markdown to PDF
 
-The entrypoint converts Markdown to LaTeX with `mdtex.sh`, compiles via `latexmk`, and cleans intermediate files. Provide Markdown on standard input and capture the resulting PDF from standard output (or use --output to write to a file).
+### Usage
 
-### Streaming without mounts
+```
+docker run --rm -i ghcr.io/golaniy/md2tex_hebrew:latest [options] \
+  --output - < input.md > output.pdf
+```
 
-```bash
+### Options
+
+- `--output <path>`: Write the PDF to a file. Use `-` (default) to stream to stdout.
+- `--title <text>` / env `DOC_TITLE`: Override the document title (defaults to derived name).
+- `--author <text>` / env `DOC_AUTHOR`: Set the author line (empty by default).
+- `--jobname <name>` / env `DOC_JOBNAME`: Override the XeLaTeX jobname (affects aux filenames).
+
+### Template overrides
+
+Provide full template contents via environment variables prior to running the container:
+
+- `MAIN_TEX_CONTENT`: Replaces the default `main.tex`.
+- `CONFIG_TEX_CONTENT`: Replaces the default `config.tex`.
+
+Example:
+
+```
+docker run --rm -i \
+  -e MAIN_TEX_CONTENT="$(cat custom_main.tex)" \
+  -e CONFIG_TEX_CONTENT="$(cat custom_config.tex)" \
+  ghcr.io/golaniy/md2tex_hebrew:latest \
+  --title "Lecture" --author "Yotam" --output - \
+  < lecture.md > lecture.pdf
+```
+
+### Minimal streaming example
+
+```
 docker run --rm -i ghcr.io/golaniy/md2tex_hebrew:latest \
   --output - < lecture.md > lecture.pdf
 ```
 
-The PDF title defaults to the Markdown name; override it with `--title` (or `DOC_TITLE`). Populate the author line with `--author` or `DOC_AUTHOR`. For custom templates, provide full file contents via the `MAIN_TEX_CONTENT` and/or `CONFIG_TEX_CONTENT` environment variables before running the container. For example, `-e MAIN_TEX_CONTENT="$(cat main.tex)"` overrides the primary template.
+The PDF title defaults to the Markdown filename; override with `--title`/`DOC_TITLE`. Author defaults to empty; set it via `--author`/`DOC_AUTHOR`.
 
 ## CI build
 
-The Bitbucket pipeline builds the Docker image on every push, ensuring the published image at `ghcr.io/golaniy/md2tex_hebrew:latest` stays up to date.
+The GitHub Actions workflow builds the Docker image on every push, keeping `ghcr.io/golaniy/md2tex_hebrew:latest` up to date.
