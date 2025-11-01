@@ -2,33 +2,36 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
-Usage: docker run ghcr.io/golaniy/md2tex_hebrew:latest [options] < markdown.md > output.pdf
+  cat <<'EOT'
+Usage: docker run ghcr.io/golaniy/md2tex_hebrew:latest --input input.md --output output.pdf [options]
 
-Options:
-  --output <path>    Output PDF path, or '-' for stdout (default: -)
-  --title <text>     Override document title (default: derived from input)
-  --author <text>    Override author (default: DOC_AUTHOR env)
-  --jobname <name>   Override LaTeX jobname / filename (sanitized)
+Required:
+  --input <path>     Markdown source file
+  --output <path>    Destination PDF file
+
+Optional:
+  --title <text>     Override document title (defaults to derived filename)
+  --author <text>    Override author (defaults to DOC_AUTHOR env)
+  --main <path>      Alternate main.tex file
+  --config <path>    Alternate config.tex file
   --help             Show this message
-
-Template overrides:
-  Supply alternative templates via environment variables:
-    MAIN_TEX_CONTENT    Full contents of main.tex
-    CONFIG_TEX_CONTENT  Full contents of config.tex
-EOF
+EOT
 }
 
 default_main="${DEFAULT_MAIN_TEX:-/opt/tex-template/main.tex}"
 default_config="${DEFAULT_CONFIG_TEX:-/opt/tex-template/config.tex}"
 mdtex_script="${MDTEX_SCRIPT:-/opt/tex-template/mdtex.sh}"
-output_path="-"
+
+input_path=""
+output_path=""
 doc_title_override="${DOC_TITLE:-}"
 doc_author_override="${DOC_AUTHOR:-}"
-job_name_override="${DOC_JOBNAME:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --input)
+      [[ $# -lt 2 ]] && { echo "Missing value for --input" >&2; exit 1; }
+      input_path="$2"; shift 2 ;;
     --output)
       [[ $# -lt 2 ]] && { echo "Missing value for --output" >&2; exit 1; }
       output_path="$2"; shift 2 ;;
@@ -38,9 +41,12 @@ while [[ $# -gt 0 ]]; do
     --author)
       [[ $# -lt 2 ]] && { echo "Missing value for --author" >&2; exit 1; }
       doc_author_override="$2"; shift 2 ;;
-    --jobname)
-      [[ $# -lt 2 ]] && { echo "Missing value for --jobname" >&2; exit 1; }
-      job_name_override="$2"; shift 2 ;;
+    --main)
+      [[ $# -lt 2 ]] && { echo "Missing value for --main" >&2; exit 1; }
+      default_main="$2"; shift 2 ;;
+    --config)
+      [[ $# -lt 2 ]] && { echo "Missing value for --config" >&2; exit 1; }
+      default_config="$2"; shift 2 ;;
     --help|-h)
       usage
       exit 0 ;;
@@ -51,40 +57,48 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 1 ;;
     *)
-      echo "Positional arguments are not supported. Provide Markdown via stdin." >&2
+      echo "Unknown argument: $1" >&2
+      usage
       exit 1 ;;
   esac
 done
 
 [[ -x "$mdtex_script" ]] || { echo "mdtex.sh not executable at $mdtex_script" >&2; exit 1; }
 
+if [[ -z "$input_path" || -z "$output_path" ]]; then
+  echo "--input and --output are required." >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ ! -f "$default_main" ]]; then
+  echo "main.tex template not found: $default_main" >&2
+  exit 1
+fi
+
+if [[ ! -f "$default_config" ]]; then
+  echo "config.tex template not found: $default_config" >&2
+  exit 1
+fi
+
+if [[ ! -f "$input_path" ]]; then
+  echo "Input file not found: $input_path" >&2
+  exit 1
+fi
+
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-if [[ -n "${MAIN_TEX_CONTENT:-}" ]]; then
-  printf '%s' "$MAIN_TEX_CONTENT" > "$workdir/main.tex"
-else
-  cp "$default_main" "$workdir/main.tex"
-fi
-
-if [[ -n "${CONFIG_TEX_CONTENT:-}" ]]; then
-  printf '%s' "$CONFIG_TEX_CONTENT" > "$workdir/config.tex"
-else
-  cp "$default_config" "$workdir/config.tex"
-fi
+cp "$default_main" "$workdir/main.tex"
+cp "$default_config" "$workdir/config.tex"
 
 markdown_path="$workdir/input.md"
-cat > "$markdown_path" || { echo "Failed to read Markdown from stdin." >&2; exit 1; }
-base_name="document"
-
-if [[ -n "$job_name_override" ]]; then
-  base_name="$job_name_override"
-fi
+cp "$input_path" "$markdown_path"
+base_name="$(basename "${input_path}")"
+base_name="${base_name%.*}"
 
 sanitize_jobname() {
-  local s="$1"
-  s="${s//[^[:alnum:]]/_}"
-  echo "$s"
+  echo "$1" | tr -c '[:alnum:]' '_' | sed -e 's/^_\+//' -e 's/_\+$//'
 }
 
 job_name="$(sanitize_jobname "$base_name")"
@@ -95,24 +109,20 @@ doc_author="$doc_author_override"
 
 pushd "$workdir" >/dev/null
 "$mdtex_script" -v "$markdown_path" >&2
-if [[ ! -f "${markdown_path%.md}.tex" ]]; then
-  echo "Expected TeX output not produced." >&2
-  exit 1
-fi
 mv "${markdown_path%.md}.tex" data.tex
 
 escape_latex() {
   local s="$1"
   s="${s//\\/\\textbackslash{}}"
-  s="${s//&/\\&}"
-  s="${s//#/\\#}"
-  s="${s//%/\\%}"
-  s="${s//$/\\$}"
-  s="${s//_/\\_}"
-  s="${s//^/\\textasciicircum{}}"
-  s="${s//~/\\textasciitilde{}}"
-  s="${s//{/\\{}"
-  s="${s//}/\\}}"
+  s="${s//&/\&}"
+  s="${s//#/\#}"
+  s="${s//%/\%}"
+  s="${s//$/\$}"
+  s="${s//_/\_}"
+  s="${s//^/\textasciicircum{}}"
+  s="${s//~/\textasciitilde{}}"
+  s="${s//{/\{}"
+  s="${s//}/\}}"
   echo "$s"
 }
 
@@ -132,10 +142,6 @@ if [[ ! -f "$pdf_source" ]]; then
   exit 1
 fi
 
-if [[ "$output_path" == "-" ]]; then
-  cat "$pdf_source"
-else
-  mkdir -p "$(dirname "$output_path")"
-  cp "$pdf_source" "$output_path"
-  echo "PDF written to $output_path" >&2
-fi
+mkdir -p "$(dirname "$output_path")"
+cp "$pdf_source" "$output_path"
+echo "PDF written to $output_path" >&2
