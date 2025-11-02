@@ -1,4 +1,4 @@
-#!usr/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 usage() {
@@ -89,18 +89,18 @@ mv "${markdown_path%.md}.tex" data.tex
 # --- FIXED ESCAPING ---
 escape_latex() {
   # Escape characters that are special in LaTeX text mode.
-  # Use double quotes; backslashes in replacements must be doubled.
+  # Note: use double quotes; backslashes in replacements must be doubled.
   local s=$1
-  s=${s//\\/\\textbackslash{}}       # backslash
+  s=${s//\\/\\textbackslash{}}    # backslash
   s=${s//&/\\&}
   s=${s//#/\\#}
   s=${s//%/\\%}
   s=${s//\$/\\$}
   s=${s//_/\\_}
-  s=${s//^/\\textasciicircum{}}      # caret
-  s=${s//~/\\textasciitilde{}}       # tilde
-  s=${s//\{/\\{} }                    # left brace -> \{
-  s=${s//\}/\\}}                      # right brace -> \}
+  s=${s//^/\\textasciicircum{}}   # caret
+  s=${s//~/\\textasciitilde{}}    # tilde
+  s=${s//\{/\\{}                   # left brace -> \{
+  s=${s//\}/\\}}                   # right brace -> \}
   printf '%s' "$s"
 }
 # ----------------------
@@ -114,7 +114,8 @@ cat > docmeta.tex <<EOF
 \renewcommand{\DocAuthor}{$escaped_author}
 EOF
 
-latexmk -f -jobname="$job_name" -xelatex -interaction=nonstopmode -halt-on-error main.tex >&2
+# Force compile; don't abort on latexmk non-zero so we can copy PDF if it exists
+latexmk -f -jobname="$job_name" -xelatex -interaction=nonstopmode -halt-on-error main.tex >&2 || true
 popd >/dev/null
 
 pdf_source="$workdir/${job_name}.pdf"
