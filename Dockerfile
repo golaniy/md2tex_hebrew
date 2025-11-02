@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-lang-other \
     culmus \
     fonts-cardo \
-    fonts-xits \
     pandoc \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,6 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /work
 WORKDIR /work
 
+RUN ln -s /usr/share/texlive/texmf-dist/fonts/opentype \
+         /usr/share/fonts/opentype/texlive
 RUN fc-cache -f
 
 COPY mdtex.sh add_spaces.py final_filter.lua main.tex config.tex /opt/tex-template/
