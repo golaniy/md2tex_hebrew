@@ -62,4 +62,4 @@ jobs:
       - name: Inspect pushed image (main only)
         if: github.ref == 'refs/heads/main'
         run: |
-          docker buildx imagetools inspect ghcr.io/yotamgolani/md2tex_hebrew:latest
+          docker buildx imagetools inspect ghcr.io/golaniy/md2tex_hebrew:latest
