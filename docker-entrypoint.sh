@@ -57,7 +57,7 @@ if [[ -z "$input_path" || -z "$output_path" ]]; then
 fi
 
 [[ -f "$default_main"  ]] || { echo "main.tex template not found: $default_main" >&2; exit 1; }
-[[ -f "$default_config"]] || { echo "config.tex template not found: $default_config" >&2; exit 1; }
+[[ -f "$default_config" ]] || { echo "config.tex template not found: $default_config" >&2; exit 1; }
 [[ -f "$input_path"     ]] || { echo "Input file not found: $input_path" >&2; exit 1; }
 
 workdir="$(mktemp -d)"
@@ -114,7 +114,7 @@ cat > docmeta.tex <<EOF
 \renewcommand{\DocAuthor}{$escaped_author}
 EOF
 
-latexmk -jobname="$job_name" -xelatex -interaction=nonstopmode -halt-on-error main.tex >&2
+latexmk -f -jobname="$job_name" -xelatex -interaction=nonstopmode -halt-on-error main.tex >&2
 popd >/dev/null
 
 pdf_source="$workdir/${job_name}.pdf"
