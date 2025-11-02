@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-lang-other \
     culmus \
     fonts-cardo \
+    fonts-xits \
     pandoc \
     && rm -rf /var/lib/apt/lists/*
 
