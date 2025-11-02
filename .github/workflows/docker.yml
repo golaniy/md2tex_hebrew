@@ -39,7 +39,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/yotamgolani/md2tex_hebrew
+          images: ghcr.io/golaniy/md2tex_hebrew
           tags: |
             type=ref,event=branch                   # e.g. main
             type=ref,event=tag                      # e.g. v1.2.3
